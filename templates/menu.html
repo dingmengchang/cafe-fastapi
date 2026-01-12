@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>曙光咖啡厅 - 在线点单</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            coffee: {
+              light: '#E8DCCA',
+              DEFAULT: '#C8A985',
+              dark: '#8B5A2B',
+              darker: '#5D4037'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .menu-card {
+      transition: transform 0.3s ease, shadow 0.3s ease;
+    }
+    .menu-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(139, 90, 43, 0.15);
+    }
+    .cart-badge {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body class="bg-[#FDFBFB] min-h-screen pb-24">
+  <!-- 顶部导航 -->
+  <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm px-4 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <img src="/static/images/icon.jpg" alt="Logo" class="w-10 h-10 rounded-xl border border-coffee/20">
+        <h1 class="text-xl font-bold text-coffee-darker">曙光咖啡厅</h1>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span id="userName" class="text-gray-600 text-sm hidden md:inline">欢迎您</span>
+        <button id="cartBtn" class="relative p-2 text-coffee-dark hover:bg-coffee/10 rounded-full transition-colors">
+          <i class="fa fa-shopping-basket text-2xl"></i>
+          <span id="cartCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 菜单内容 -->
+  <main class="max-w-6xl mx-auto p-4">
+    <!-- 菜单原图参考 (可选) -->
+    <div class="mb-8 rounded-2xl overflow-hidden shadow-xl border-4 border-white">
+      <img src="/static/images/menu.jpg" alt="Menu Reference" class="w-full h-auto object-cover max-h-64 opacity-90">
+      <div class="bg-coffee-darker p-4 text-center">
+        <p class="text-white font-medium italic">曙光咖啡 · 现磨好豆 · 匠心特调</p>
+      </div>
+    </div>
+
+    <!-- 菜单分类导航 -->
+    <div class="flex space-x-4 overflow-x-auto pb-4 mb-6 scrollbar-hide">
+      <button onclick="filterMenu('全部')" class="category-btn px-6 py-2 bg-coffee text-white rounded-full whitespace-nowrap shadow-md transition-all">全部饮品</button>
+      <button onclick="filterMenu('经典咖啡')" class="category-btn px-6 py-2 bg-white text-gray-600 rounded-full whitespace-nowrap border border-gray-200 hover:border-coffee transition-all">经典咖啡</button>
+      <button onclick="filterMenu('手打柠檬茶')" class="category-btn px-6 py-2 bg-white text-gray-600 rounded-full whitespace-nowrap border border-gray-200 hover:border-coffee transition-all">手打柠檬茶</button>
+      <button onclick="filterMenu('轻乳茶')" class="category-btn px-6 py-2 bg-white text-gray-600 rounded-full whitespace-nowrap border border-gray-200 hover:border-coffee transition-all">轻乳茶</button>
+      <button onclick="filterMenu('人气饮品')" class="category-btn px-6 py-2 bg-white text-gray-600 rounded-full whitespace-nowrap border border-gray-200 hover:border-coffee transition-all">人气饮品</button>
+    </div>
+
+    <!-- 商品列表 -->
+    <div id="productList" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+      <!-- 动态加载商品 -->
+    </div>
+  </main>
+
+  <!-- 底部结算栏 (浮动) -->
+  <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-xs uppercase tracking-wider">预计总额</p>
+        <p class="text-2xl font-bold text-coffee-dark">¥ <span id="totalPrice">0.00</span></p>
+      </div>
+      <button onclick="checkout()" class="bg-coffee-darker text-white px-8 py-3 rounded-xl font-bold btn-hover flex items-center space-x-2 shadow-lg shadow-coffee/30">
+        <span>立即下单</span>
+        <i class="fa fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 购物车抽屉 (弹窗) -->
+  <div id="cartModal" class="fixed inset-0 z-[60] hidden">
+    <!-- 背景遮罩 -->
+    <div id="modalOverlay" class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+    <!-- 内容区域 -->
+    <div class="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-full" id="cartDrawer">
+      <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-coffee-darker flex items-center">
+          <i class="fa fa-shopping-cart mr-2"></i> 我的购物车
+        </h2>
+        <button id="closeCart" class="text-gray-400 hover:text-gray-600">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div id="cartItemsList" class="flex-grow overflow-y-auto p-6 space-y-4">
+        <!-- 购物车项动态加载 -->
+      </div>
+
+      <div class="p-6 border-t border-gray-100 space-y-4">
+        <div class="flex justify-between items-center text-lg">
+          <span class="text-gray-600">总计金额</span>
+          <span class="font-bold text-coffee-dark">¥ <span id="modalTotalPrice">0.00</span></span>
+        </div>
+        <button onclick="clearCart()" class="w-full py-2 text-gray-400 text-sm hover:text-red-500 transition-colors">
+          清空购物车
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 菜单数据 - 严格按照用户最新要求更新
+    const menuItems = [
+      { id: 1, name: '美式咖啡(中)', price: 6, category: '经典咖啡', image: '/static/images/menu.jpg' },
+      { id: 2, name: '卡布奇诺(中)', price: 7, category: '经典咖啡', image: '/static/images/menu.jpg' },
+      { id: 14, name: '卡布奇诺(大)', price: 10.8, category: '经典咖啡', image: '/static/images/menu.jpg' },
+      { id: 3, name: '拿铁咖啡(中)', price: 7, category: '经典咖啡', image: '/static/images/menu.jpg' },
+      { id: 15, name: '拿铁咖啡(大)', price: 10.8, category: '经典咖啡', image: '/static/images/menu.jpg' },
+      { id: 4, name: '焦糖玛奇朵(中)', price: 10.8, category: '经典咖啡', image: '/static/images/menu.jpg' },
+      { id: 5, name: '手打鸭屎柠檬茶(中)', price: 3.88, category: '手打柠檬茶', image: '/static/images/menu.jpg' },
+      { id: 6, name: '手打鸭屎柠檬茶(大)', price: 4.88, category: '手打柠檬茶', image: '/static/images/menu.jpg' },
+      { id: 7, name: '手打茉莉柠檬茶(中)', price: 3.88, category: '手打柠檬茶', image: '/static/images/menu.jpg' },
+      { id: 8, name: '手打茉莉柠檬茶(大)', price: 4.88, category: '手打柠檬茶', image: '/static/images/menu.jpg' },
+      { id: 9, name: '茉莉花茶轻乳茶(大)', price: 9, category: '轻乳茶', image: '/static/images/menu.jpg' },
+      { id: 16, name: '茉莉花茶轻乳茶(中)', price: 7, category: '轻乳茶', image: '/static/images/menu.jpg' },
+      { id: 10, name: '锡兰红茶轻乳茶(大)', price: 9, category: '轻乳茶', image: '/static/images/menu.jpg' },
+      { id: 11, name: '香蕉奶昔', price: 8, category: '人气饮品', image: '/static/images/menu.jpg' },
+      { id: 12, name: '曙光奶茶(中)', price: 5, category: '人气饮品', image: '/static/images/menu.jpg' },
+      { id: 17, name: '曙光奶茶(大)', price: 6, category: '人气饮品', image: '/static/images/menu.jpg' },
+      { id: 13, name: '柠檬雪碧(中)', price: 5, category: '人气饮品', image: '/static/images/menu.jpg' },
+      { id: 18, name: '柠檬雪碧(大)', price: 7, category: '人气饮品', image: '/static/images/menu.jpg' }
+    ];
+
+    let cart = [];
+    let currentCategory = '全部';
+
+    function renderMenu() {
+      const productList = document.getElementById('productList');
+      const filteredItems = currentCategory === '全部' 
+        ? menuItems 
+        : menuItems.filter(item => item.category === currentCategory);
+
+      productList.innerHTML = filteredItems.map(item => `
+        <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 menu-card flex flex-col">
+          <div class="relative h-40 overflow-hidden bg-coffee-light/20">
+            <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" onerror="this.src='/static/images/menu.jpg'; this.classList.add('opacity-50')">
+            <div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg text-[10px] font-bold text-coffee-darker">
+              ${item.category}
+            </div>
+          </div>
+          <div class="p-4 flex-grow flex flex-col justify-between">
+            <div>
+              <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-1">${item.name}</h3>
+              <p class="text-coffee-dark font-bold text-lg">¥${item.price}</p>
+            </div>
+            <button onclick="addToCart(${item.id})" class="mt-4 w-full bg-coffee-light/50 text-coffee-darker py-2 rounded-xl font-bold hover:bg-coffee hover:text-white transition-all flex items-center justify-center space-x-2">
+              <i class="fa fa-plus"></i>
+              <span>加入购物车</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterMenu(category) {
+      currentCategory = category;
+      // 更新按钮样式
+      const buttons = document.querySelectorAll('.category-btn');
+      buttons.forEach(btn => {
+        if (btn.innerText.includes(category) || (category === '全部' && btn.innerText.includes('全部'))) {
+          btn.classList.remove('bg-white', 'text-gray-600', 'border', 'border-gray-200');
+          btn.classList.add('bg-coffee', 'text-white', 'shadow-md');
+        } else {
+          btn.classList.add('bg-white', 'text-gray-600', 'border', 'border-gray-200');
+          btn.classList.remove('bg-coffee', 'text-white', 'shadow-md');
+        }
+      });
+      renderMenu();
+    }
+
+    async function checkout() {
+      if (cart.length === 0) {
+        alert('购物车是空的，快去选购吧！');
+        return;
+      }
+
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      if (!user) {
+        alert('请先登录后再下单');
+        window.location.href = '/login';
+        return;
+      }
+
+      const orderData = {
+        student_number: user.student_number,
+        total_price: parseFloat(document.getElementById('totalPrice').innerText),
+        items: cart.map(item => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity
+        }))
+      };
+
+      try {
+        const response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderData)
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert('订单提交成功！订单编号：' + result.order_id);
+          cart = [];
+          updateCartUI();
+          // 可以跳转到订单详情页或关闭购物车
+          const closeCart = document.getElementById('closeCart');
+          if (closeCart) closeCart.click();
+        } else {
+          alert('下单失败：' + (result.detail || '未知错误'));
+        }
+      } catch (error) {
+        console.error('Checkout error:', error);
+        alert('网络错误，请稍后再试');
+      }
+    }
+
+    function addToCart(id) {
+      const item = menuItems.find(i => i.id === id);
+      const existingItem = cart.find(i => i.id === id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        cart.push({ ...item, quantity: 1 });
+      }
+      updateCartUI();
+    }
+
+    function removeFromCart(id) {
+      const index = cart.findIndex(i => i.id === id);
+      if (index > -1) {
+        if (cart[index].quantity > 1) {
+          cart[index].quantity -= 1;
+        } else {
+          cart.splice(index, 1);
+        }
+      }
+      updateCartUI();
+    }
+
+    function clearCart() {
+      if (confirm('确定要清空购物车吗？')) {
+        cart = [];
+        updateCartUI();
+      }
+    }
+
+    function updateCartUI() {
+      const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+      const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      document.getElementById('cartCount').innerText = count;
+      document.getElementById('totalPrice').innerText = total.toFixed(2);
+      document.getElementById('modalTotalPrice').innerText = total.toFixed(2);
+      
+      renderCartItems();
+    }
+
+    function renderCartItems() {
+      const cartItemsList = document.getElementById('cartItemsList');
+      if (cart.length === 0) {
+        cartItemsList.innerHTML = `
+          <div class="text-center py-20 text-gray-400">
+            <i class="fa fa-shopping-basket text-5xl mb-4 block opacity-20"></i>
+            <p>购物车还是空的哦</p>
+          </div>
+        `;
+        return;
+      }
+
+      cartItemsList.innerHTML = cart.map(item => `
+        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
+          <div class="flex items-center space-x-3">
+            <img src="${item.image}" class="w-12 h-12 rounded-lg object-cover" onerror="this.src='/static/images/menu.jpg'">
+            <div>
+              <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
+              <p class="text-coffee-dark text-xs font-bold">¥${item.price}</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="removeFromCart(${item.id})" class="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-400 hover:text-coffee-dark transition-colors">
+              <i class="fa fa-minus text-xs"></i>
+            </button>
+            <span class="text-sm font-bold w-4 text-center">${item.quantity}</span>
+            <button onclick="addToCart(${item.id})" class="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-400 hover:text-coffee-dark transition-colors">
+              <i class="fa fa-plus text-xs"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const cartModal = document.getElementById('cartModal');
+      const cartDrawer = document.getElementById('cartDrawer');
+      const cartBtn = document.getElementById('cartBtn');
+      const closeCart = document.getElementById('closeCart');
+      const modalOverlay = document.getElementById('modalOverlay');
+
+      const openCartModal = () => {
+        cartModal.classList.remove('hidden');
+        setTimeout(() => {
+          cartDrawer.classList.remove('translate-x-full');
+        }, 10);
+      };
+
+      const closeCartModal = () => {
+        cartDrawer.classList.add('translate-x-full');
+        setTimeout(() => {
+          cartModal.classList.add('hidden');
+        }, 300);
+      };
+
+      cartBtn.addEventListener('click', openCartModal);
+      closeCart.addEventListener('click', closeCartModal);
+      modalOverlay.addEventListener('click', closeCartModal);
+
+      // 获取当前登录用户
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      if (user) {
+        document.getElementById('userName').innerText = `欢迎您，${user.name}`;
+      }
+      renderMenu();
+    });
+  </script>
+</body>
+</html>

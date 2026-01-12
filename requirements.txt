@@ -1,0 +1,10 @@
+redis
+types-redis
+uvicorn
+fastapi[standard]==0.113.0
+sqlalchemy
+pymysql
+cryptography
+python-dotenv
+passlib
+bcrypt==4.0.1

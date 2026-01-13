@@ -49,7 +49,11 @@
         <h1 class="text-xl font-bold text-coffee-darker">曙光咖啡厅</h1>
       </div>
       <div class="flex items-center space-x-4">
+        <div id="roleBadge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"></div>
         <span id="userName" class="text-gray-600 text-sm hidden md:inline">欢迎您</span>
+        <button id="manageOrdersBtn" class="hidden bg-coffee-dark text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-coffee-darker transition-colors">
+          <i class="fa fa-list-alt mr-1"></i>订单管理
+        </button>
         <button id="cartBtn" class="relative p-2 text-coffee-dark hover:bg-coffee/10 rounded-full transition-colors">
           <i class="fa fa-shopping-basket text-2xl"></i>
           <span id="cartCount" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
@@ -323,11 +327,39 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      // 检查登录状态和角色
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      const userNameElem = document.getElementById('userName');
+      const roleBadge = document.getElementById('roleBadge');
+      const manageOrdersBtn = document.getElementById('manageOrdersBtn');
+
+      if (user) {
+        userNameElem.innerText = `欢迎回来，${user.name}`;
+        userNameElem.classList.remove('hidden');
+        
+        // 显示角色标识
+        roleBadge.classList.remove('hidden');
+        if (user.role === 'staff') {
+          roleBadge.innerText = '咖啡厅店员';
+          roleBadge.classList.add('bg-coffee-darker', 'text-white');
+          manageOrdersBtn.classList.remove('hidden'); // 店员可见管理按钮
+        } else {
+          roleBadge.innerText = '校内客户';
+          roleBadge.classList.add('bg-coffee-light', 'text-coffee-darker');
+        }
+      } else {
+        window.location.href = '/login'; // 未登录跳转
+      }
+
       const cartModal = document.getElementById('cartModal');
       const cartDrawer = document.getElementById('cartDrawer');
       const cartBtn = document.getElementById('cartBtn');
       const closeCart = document.getElementById('closeCart');
       const modalOverlay = document.getElementById('modalOverlay');
+
+      manageOrdersBtn.addEventListener('click', () => {
+        window.location.href = '/orders';
+      });
 
       const openCartModal = () => {
         cartModal.classList.remove('hidden');
@@ -348,7 +380,6 @@
       modalOverlay.addEventListener('click', closeCartModal);
 
       // 获取当前登录用户
-      const user = JSON.parse(localStorage.getItem('currentUser'));
       if (user) {
         document.getElementById('userName').innerText = `欢迎您，${user.name}`;
       }

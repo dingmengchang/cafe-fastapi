@@ -65,6 +65,7 @@ class User(BaseModel):
     student_number: str
     phone_number: str
     password: str
+    role: str = "customer"
 
 class LoginRequest(BaseModel):
     student_number: str
@@ -109,6 +110,32 @@ async def get_menu():
             return f.read()
     return "Menu page not found."
 
+@app.get("/orders", response_class=HTMLResponse)
+async def get_orders_page():
+    path = os.path.join(TEMPLATE_DIR, "orders.html")
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "Orders page not found."
+
+@app.get("/api/admin/orders")
+async def get_all_orders(db: Session = Depends(database.get_db)):
+    orders = db.query(models.OrderDB).all()
+    result = []
+    for order in orders:
+        user = db.query(models.UserDB).filter(models.UserDB.id == order.user_id).first()
+        items = db.query(models.OrderItemDB).filter(models.OrderItemDB.order_id == order.id).all()
+        result.append({
+            "id": order.id,
+            "user_name": user.name if user else "未知用户",
+            "student_number": user.student_number if user else "N/A",
+            "total_price": order.total_price,
+            "status": order.status,
+            "created_at": order.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "items": [{"name": item.product_name, "quantity": item.quantity, "price": item.price} for item in items]
+        })
+    return result
+
 @app.post("/api/register")
 async def create_user(user: User, db: Session = Depends(database.get_db)):
     db_user = db.query(models.UserDB).filter(models.UserDB.student_number == user.student_number).first()
@@ -119,12 +146,13 @@ async def create_user(user: User, db: Session = Depends(database.get_db)):
         name=user.name,
         student_number=user.student_number,
         phone_number=user.phone_number,
-        password=hashed_password
+        password=hashed_password,
+        role="customer"  # 注册时强制默认为客户
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return {"message": "注册成功", "user": {"name": new_user.name, "student_number": new_user.student_number}}
+    return {"message": "注册成功", "user": {"name": new_user.name, "student_number": new_user.student_number, "role": new_user.role}}
 
 @app.post("/api/login")
 async def login(login_data: LoginRequest, db: Session = Depends(database.get_db)):
@@ -134,7 +162,8 @@ async def login(login_data: LoginRequest, db: Session = Depends(database.get_db)
             "message": "登录成功", 
             "user": {
                 "name": db_user.name, 
-                "student_number": db_user.student_number
+                "student_number": db_user.student_number,
+                "role": db_user.role
             }
         }
     raise HTTPException(status_code=401, detail="学号或密码错误")

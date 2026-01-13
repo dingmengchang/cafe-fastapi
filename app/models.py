@@ -11,6 +11,7 @@ class UserDB(Base):
     student_number = Column(String(20), unique=True, index=True)
     phone_number = Column(String(20))
     password = Column(String(100))
+    role = Column(String(20), default="customer")  # customer, staff
 
 class OrderDB(Base):
     __tablename__ = "orders"

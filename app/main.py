@@ -81,6 +81,9 @@ class OrderRequest(BaseModel):
     total_price: float
     items: List[OrderItemRequest]
 
+class OrderStatusUpdate(BaseModel):
+    status: str
+
 # 路由定义
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -120,7 +123,7 @@ async def get_orders_page():
 
 @app.get("/api/admin/orders")
 async def get_all_orders(db: Session = Depends(database.get_db)):
-    orders = db.query(models.OrderDB).all()
+    orders = db.query(models.OrderDB).order_by(models.OrderDB.created_at.desc()).all()
     result = []
     for order in orders:
         user = db.query(models.UserDB).filter(models.UserDB.id == order.user_id).first()
@@ -135,6 +138,16 @@ async def get_all_orders(db: Session = Depends(database.get_db)):
             "items": [{"name": item.product_name, "quantity": item.quantity, "price": item.price} for item in items]
         })
     return result
+
+@app.patch("/api/admin/orders/{order_id}/status")
+async def update_order_status(order_id: int, update: OrderStatusUpdate, db: Session = Depends(database.get_db)):
+    order = db.query(models.OrderDB).filter(models.OrderDB.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="订单未找到")
+    
+    order.status = update.status
+    db.commit()
+    return {"message": f"订单状态已更新为 {update.status}"}
 
 @app.post("/api/register")
 async def create_user(user: User, db: Session = Depends(database.get_db)):

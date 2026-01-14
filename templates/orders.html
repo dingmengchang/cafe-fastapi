@@ -38,11 +38,23 @@
     </header>
 
     <main class="max-w-6xl mx-auto p-4 md:p-8">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-bold text-gray-800">所有订单</h2>
-            <button onclick="loadOrders()" class="bg-coffee text-white px-4 py-2 rounded-lg hover:bg-coffee-dark transition-all">
-                <i class="fa fa-refresh mr-1"></i>刷新数据
-            </button>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">订单管理</h2>
+                <p class="text-gray-500 text-sm">管理校内咖啡厅的所有实时订单</p>
+            </div>
+            <div class="flex items-center space-x-2 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+                <button onclick="switchTab('pending')" id="tab-pending" class="px-6 py-2 rounded-lg text-sm font-bold transition-all bg-coffee text-white">
+                    进行中
+                </button>
+                <button onclick="switchTab('completed')" id="tab-completed" class="px-6 py-2 rounded-lg text-sm font-bold transition-all text-gray-500 hover:bg-gray-50">
+                    已完成
+                </button>
+                <div class="w-px h-6 bg-gray-200 mx-2"></div>
+                <button onclick="loadOrders()" class="p-2 text-gray-400 hover:text-coffee transition-colors">
+                    <i class="fa fa-refresh"></i>
+                </button>
+            </div>
         </div>
 
         <div id="ordersContainer" class="space-y-6">
@@ -55,65 +67,58 @@
     </main>
 
     <script>
+        let currentTab = 'pending';
+        let allOrders = [];
+
+        function switchTab(tab) {
+            currentTab = tab;
+            // 更新 UI 样式
+            const pendingBtn = document.getElementById('tab-pending');
+            const completedBtn = document.getElementById('tab-completed');
+            
+            if (tab === 'pending') {
+                pendingBtn.classList.add('bg-coffee', 'text-white');
+                pendingBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                completedBtn.classList.remove('bg-coffee', 'text-white');
+                completedBtn.classList.add('text-gray-500', 'hover:bg-gray-50');
+            } else {
+                completedBtn.classList.add('bg-coffee', 'text-white');
+                completedBtn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                pendingBtn.classList.remove('bg-coffee', 'text-white');
+                pendingBtn.classList.add('text-gray-500', 'hover:bg-gray-50');
+            }
+            
+            renderOrders();
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            try {
+                const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (response.ok) {
+                    // 刷新数据
+                    await loadOrders();
+                } else {
+                    alert('更新失败，请稍后重试');
+                }
+            } catch (error) {
+                console.error('Update status error:', error);
+                alert('网络错误');
+            }
+        }
+
         async function loadOrders() {
             const container = document.getElementById('ordersContainer');
             try {
                 const response = await fetch('/api/admin/orders');
-                const orders = await response.json();
-                
-                if (orders.length === 0) {
-                    container.innerHTML = `
-                        <div class="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
-                            <i class="fa fa-folder-open-o text-5xl text-gray-200 mb-4"></i>
-                            <p class="text-gray-500">暂无订单数据</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = orders.reverse().map(order => `
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md">
-                        <div class="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-coffee/10 rounded-xl flex items-center justify-center text-coffee-dark font-bold text-lg">
-                                    #${order.id}
-                                </div>
-                                <div>
-                                    <h3 class="font-bold text-gray-800">${order.user_name}</h3>
-                                    <p class="text-gray-500 text-xs">${order.student_number} · ${order.created_at}</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between md:justify-end gap-6">
-                                <div class="text-right">
-                                    <p class="text-gray-400 text-[10px] uppercase tracking-wider">订单总额</p>
-                                    <p class="text-xl font-bold text-coffee-dark">¥${order.total_price.toFixed(2)}</p>
-                                </div>
-                                <div class="px-3 py-1 rounded-full text-xs font-bold ${
-                                    order.status === 'pending' ? 'bg-amber-100 text-amber-600' : 
-                                    order.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                                }">
-                                    ${order.status === 'pending' ? '待处理' : order.status === 'completed' ? '已完成' : '已取消'}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-gray-50/50 p-6">
-                            <div class="space-y-3">
-                                ${order.items.map(item => `
-                                    <div class="flex justify-between items-center text-sm text-gray-600">
-                                        <div class="flex items-center space-x-2">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-coffee-light"></span>
-                                            <span>${item.name}</span>
-                                        </div>
-                                        <div class="font-medium">
-                                            <span class="text-gray-400">x${item.quantity}</span>
-                                            <span class="ml-4">¥${(item.price * item.quantity).toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                allOrders = await response.json();
+                renderOrders();
             } catch (error) {
                 container.innerHTML = `
                     <div class="bg-red-50 text-red-500 p-6 rounded-2xl text-center border border-red-100">
@@ -122,6 +127,72 @@
                     </div>
                 `;
             }
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('ordersContainer');
+            const filteredOrders = allOrders.filter(order => order.status === currentTab);
+            
+            if (filteredOrders.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
+                        <i class="fa fa-folder-open-o text-5xl text-gray-200 mb-4"></i>
+                        <p class="text-gray-500">暂无${currentTab === 'pending' ? '进行中' : '已完成'}的订单</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredOrders.map(order => `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md">
+                    <div class="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-coffee/10 rounded-xl flex items-center justify-center text-coffee-dark font-bold text-lg">
+                                #${order.id}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-800">${order.user_name}</h3>
+                                <p class="text-gray-500 text-xs">${order.student_number} · ${order.created_at}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between md:justify-end gap-6">
+                            <div class="text-right">
+                                <p class="text-gray-400 text-[10px] uppercase tracking-wider">订单总额</p>
+                                <p class="text-xl font-bold text-coffee-dark">¥${order.total_price.toFixed(2)}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="px-3 py-1 rounded-full text-xs font-bold ${
+                                    order.status === 'pending' ? 'bg-amber-100 text-amber-600' : 
+                                    order.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
+                                }">
+                                    ${order.status === 'pending' ? '进行中' : order.status === 'completed' ? '已完成' : '已取消'}
+                                </div>
+                                ${order.status === 'pending' ? `
+                                    <button onclick="updateOrderStatus(${order.id}, 'completed')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center shadow-sm">
+                                        <i class="fa fa-check mr-1"></i>完成订单
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50/50 p-6">
+                        <div class="space-y-3">
+                            ${order.items.map(item => `
+                                <div class="flex justify-between items-center text-sm text-gray-600">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-coffee-light"></span>
+                                        <span>${item.name}</span>
+                                    </div>
+                                    <div class="font-medium">
+                                        <span class="text-gray-400">x${item.quantity}</span>
+                                        <span class="ml-4">¥${(item.price * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         document.addEventListener('DOMContentLoaded', () => {

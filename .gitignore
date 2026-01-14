@@ -21,3 +21,6 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Uploads / Sensitive images
+static/images/receive_code.jpg

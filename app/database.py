@@ -16,12 +16,12 @@ SQLALCHEMY_DATABASE_URL = (
 )
 
 if not SQLALCHEMY_DATABASE_URL:
-    # 如果没有直接的 URL，则通过各组件构建
-    DB_USER = os.getenv("DB_USER", "root")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-    DB_HOST = os.getenv("DB_HOST", "localhost")
-    DB_PORT = os.getenv("DB_PORT", "3306")
-    DB_NAME = os.getenv("DB_NAME", "waimai")
+    # 优先匹配 Zeabur 自动生成的变量名
+    DB_USER = os.getenv("MYSQL_USERNAME") or os.getenv("DB_USER") or "root"
+    DB_PASSWORD = os.getenv("MYSQL_PASSWORD") or os.getenv("DB_PASSWORD") or ""
+    DB_HOST = os.getenv("MYSQL_HOST") or os.getenv("DB_HOST") or "localhost"
+    DB_PORT = os.getenv("MYSQL_PORT") or os.getenv("DB_PORT") or "3306"
+    DB_NAME = os.getenv("MYSQL_DATABASE") or os.getenv("DB_NAME") or "waimai"
     
     encoded_password = quote_plus(DB_PASSWORD)
     SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"

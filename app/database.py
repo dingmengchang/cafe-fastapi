@@ -8,8 +8,12 @@ from urllib.parse import quote_plus
 # 加载 .env 文件 (在 app 目录的父目录中)
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
-# 优先尝试从 DATABASE_URL 获取（Render 常见的环境变量名）
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+# 优先尝试从常见的环境变量名获取
+SQLALCHEMY_DATABASE_URL = (
+    os.getenv("DATABASE_URL") or 
+    os.getenv("MYSQL_URL") or 
+    os.getenv("POSTGRES_URL")
+)
 
 if not SQLALCHEMY_DATABASE_URL:
     # 如果没有直接的 URL，则通过各组件构建
@@ -22,9 +26,13 @@ if not SQLALCHEMY_DATABASE_URL:
     encoded_password = quote_plus(DB_PASSWORD)
     SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# Render 提供的 PostgreSQL URL 通常以 postgres:// 开头，但 SQLAlchemy 需要 postgresql://
+# 兼容性处理：Zeabur/Render 的 PostgreSQL URL 可能以 postgres:// 开头，但 SQLAlchemy 需要 postgresql://
 if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# 如果是 MySQL URL 且没有指定驱动，添加 pymysql
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("mysql://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
 
 # 创建引擎
 engine = create_engine(SQLALCHEMY_DATABASE_URL)

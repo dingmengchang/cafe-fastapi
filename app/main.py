@@ -39,14 +39,17 @@ def verify_password(plain_password: str, hashed_password: str):
     except Exception:
         return plain_password == hashed_password
 
-# 初始化数据库表
-try:
-    print(f"Connecting to database: {database.SQLALCHEMY_DATABASE_URL.split('@')[-1] if '@' in database.SQLALCHEMY_DATABASE_URL else 'unknown'}")
-    models.Base.metadata.create_all(bind=database.engine)
-    print("Database tables initialized successfully.")
-except Exception as e:
-    print(f"WARNING: Database initialization failed: {e}")
-    print("Application will continue to start, but database features may be unavailable.")
+# 初始化数据库表逻辑移到 startup
+@app.on_event("startup")
+async def startup_event():
+    print("--- [DEBUG] APPLICATION STARTUP ---")
+    try:
+        print(f"Connecting to database: {database.SQLALCHEMY_DATABASE_URL.split('@')[-1] if '@' in database.SQLALCHEMY_DATABASE_URL else 'unknown'}")
+        models.Base.metadata.create_all(bind=database.engine)
+        print("Database tables initialized successfully.")
+    except Exception as e:
+        print(f"WARNING: Database initialization failed: {e}")
+        print("Application started in offline mode (database features unavailable).")
 
 app = FastAPI()
 

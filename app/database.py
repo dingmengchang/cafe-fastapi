@@ -35,6 +35,11 @@ if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("mysql://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
 
 # 创建引擎
+if not SQLALCHEMY_DATABASE_URL:
+    print("CRITICAL: No database URL found. Application may fail.")
+    # 提供一个内存数据库作为最后的 fallback 以防止导入时直接崩溃
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./fallback.db"
+
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     # 增加连接池配置，提高稳定性

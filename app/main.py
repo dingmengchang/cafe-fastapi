@@ -1,20 +1,22 @@
-from fastapi import FastAPI, HTTPException, Response, Depends, Request
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
-from enum import Enum # 枚举类型
-from fastapi.middleware.cors import CORSMiddleware # 跨域资源共享
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 import os
 import bcrypt
 from typing import List
+from fastapi import FastAPI, HTTPException, Response, Depends, Request
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-# 极其早期的日志，用于排查启动问题
-print("--- APP STARTING ---")
-print(f"Current Directory: {os.getcwd()}")
-print(f"Environment PORT: {os.getenv('PORT')}")
+# 极其早期的日志
+print("--- [DEBUG] MAIN.PY LOADING ---")
 
-from sqlalchemy.orm import Session
-from . import database, models
+try:
+    from . import database, models
+    from sqlalchemy.orm import Session
+    print("--- [DEBUG] IMPORTS SUCCESSFUL ---")
+except Exception as e:
+    print(f"--- [DEBUG] IMPORT ERROR: {e} ---")
+    raise
 
 # 设置基础目录
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

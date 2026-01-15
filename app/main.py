@@ -7,17 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# 极其早期的日志
-print("--- [DEBUG] MAIN.PY LOADING ---")
-
-try:
-    from . import database, models
-    from sqlalchemy.orm import Session
-    print("--- [DEBUG] IMPORTS SUCCESSFUL ---")
-except Exception as e:
-    print(f"--- [DEBUG] IMPORT ERROR: {e} ---")
-    raise
-
 # 设置基础目录
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
@@ -39,19 +28,31 @@ def verify_password(plain_password: str, hashed_password: str):
     except Exception:
         return plain_password == hashed_password
 
+# 初始化 FastAPI 实例 (必须在装饰器之前)
+app = FastAPI()
+
+# 极其早期的日志 (增加 flush=True 确保立即输出)
+print("--- [DEBUG] MAIN.PY LOADING ---", flush=True)
+
+try:
+    from . import database, models
+    from sqlalchemy.orm import Session
+    print("--- [DEBUG] IMPORTS SUCCESSFUL ---", flush=True)
+except Exception as e:
+    print(f"--- [DEBUG] IMPORT ERROR: {e} ---", flush=True)
+    raise
+
 # 初始化数据库表逻辑移到 startup
 @app.on_event("startup")
 async def startup_event():
-    print("--- [DEBUG] APPLICATION STARTUP ---")
+    print("--- [DEBUG] APPLICATION STARTUP ---", flush=True)
     try:
-        print(f"Connecting to database: {database.SQLALCHEMY_DATABASE_URL.split('@')[-1] if '@' in database.SQLALCHEMY_DATABASE_URL else 'unknown'}")
+        print(f"Connecting to database: {database.SQLALCHEMY_DATABASE_URL.split('@')[-1] if '@' in database.SQLALCHEMY_DATABASE_URL else 'unknown'}", flush=True)
         models.Base.metadata.create_all(bind=database.engine)
-        print("Database tables initialized successfully.")
+        print("Database tables initialized successfully.", flush=True)
     except Exception as e:
-        print(f"WARNING: Database initialization failed: {e}")
-        print("Application started in offline mode (database features unavailable).")
-
-app = FastAPI()
+        print(f"WARNING: Database initialization failed: {e}", flush=True)
+        print("Application started in offline mode (database features unavailable).", flush=True)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

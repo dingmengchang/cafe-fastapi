@@ -8,3 +8,5 @@ cryptography
 python-dotenv
 passlib
 bcrypt==4.0.1
+gunicorn
+psycopg2-binary

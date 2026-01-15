@@ -5,10 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware # 跨域资源共享
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
-from sqlalchemy.orm import Session
-from . import database, models
 import bcrypt
 from typing import List
+
+# 极其早期的日志，用于排查启动问题
+print("--- APP STARTING ---")
+print(f"Current Directory: {os.getcwd()}")
+print(f"Environment PORT: {os.getenv('PORT')}")
+
+from sqlalchemy.orm import Session
+from . import database, models
 
 # 设置基础目录
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

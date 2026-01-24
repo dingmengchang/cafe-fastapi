@@ -1,6 +1,7 @@
 # 曙光咖啡厅管理系统 (Waimai System)
 
 基于 FastAPI 开发的曙光咖啡厅管理系统，支持用户下单、订单状态追踪以及店员端订单管理。
+当前你可以在https://cafe.cuberqaq.cloud/
 
 ## 🌟 主要功能
 
